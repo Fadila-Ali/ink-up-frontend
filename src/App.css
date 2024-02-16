@@ -1,38 +1,54 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
 .App {
-  text-align: center;
+  display: grid;
+  height: 100%;
+  width: 100%;
+  grid-template-columns: 0.5fr 3fr;
+  grid-template-areas: 
+    "Side Header Header"
+    "Side Main Main"
+    "Side Main Main"
+    "Side . .";
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.Header {
+  grid-area: Header;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.Side {
+  grid-area: Side;
+  height: 100vh;
+  background-color: #1E293B;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.Main {
+  grid-area: Main;
 }
 
-.App-link {
-  color: #61dafb;
+.inputfile {
+	width: 150px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+  padding: 0.5rem 0.75rem;
+  margin-top: 1rem;
+  margin-left: 13rem;
+  z-index: 1;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.inputfile + label {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  margin-top: 1rem;
+  opacity: 50%;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+  padding: 0.5rem 0.75rem;
 }
