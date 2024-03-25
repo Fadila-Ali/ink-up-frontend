@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
-// import { useNavigate } from "react-router-dom";
+import { useNavigate  } from 'react-router-dom';
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -14,6 +14,8 @@ const UserProvider = ({ children }) => {
       });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    let navigate = useNavigate();
 
 
      // Function to handle user signup
@@ -70,29 +72,33 @@ const UserProvider = ({ children }) => {
     };
     
 
-    // Function to update user profile
-    const updateUser = async (updatedUserData) => {
-        try {
-            const { token } = userInfo;
-            if (!token) {
-                setError('User is not authenticated.');
-                return;
-            }
-            const response = await axios.put(`${API}/users/${userInfo.user.id}`, updatedUserData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            if (response.status === 200) {
-                setUserInfo({ ...userInfo, user: response.data.user });
-            } else {
-                setError('Failed to update profile.');
-            }
-        } catch (error) {
-            console.error('Error updating profile:', error);
+  // Function to update user profile
+const updateUser = async (updatedUserData) => {
+    try {
+        const { token } = userInfo;
+        if (!token) {
+            setError('User is not authenticated.');
+            // navigate("/login");
+        }
+        const response = await axios.put(`${API}/users/${userInfo.user.id}`, updatedUserData, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        if (response.status === 200) {
+            // Merge the updated user data with existing user info,
+            // ensuring that the profile_img is updated
+            const updatedUser = { ...userInfo.user, ...response.data.user };
+            setUserInfo({ ...userInfo, user: updatedUser, profile_img: updatedUser.profile_img });
+        } else {
             setError('Failed to update profile.');
         }
-    };
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        setError('Failed to update profile.');
+    }
+};
+
 
 
     // Check Authentication on Component Mount
@@ -102,7 +108,7 @@ const UserProvider = ({ children }) => {
         console.log(`user data: ${userInfo}`);
         if (!token) {
             // Token not found, user is not authenticated
-            return;
+            navigate("/login");
         }
         const response = await axios.get(`${API}/notes`, {
             headers: {
@@ -116,6 +122,7 @@ const UserProvider = ({ children }) => {
             setError(null);
         } else {
             setError('Authentication failed. Please log in again.');
+            navigate("/login");
         }
         } catch (error) {
             console.error('Error checking authentication:', error);
@@ -136,31 +143,6 @@ const UserProvider = ({ children }) => {
         localStorage.setItem('ink-up', JSON.stringify(userInfo));
       }, [userInfo]);
 
-
-     // Function to create a new note
-//   const createNote = async (noteData) => {
-//     try {
-//       const token = localStorage.getItem('token');
-//       if (!token) {
-//         setError('User is not authenticated.');
-//         return;
-//       }
-//       const response = await axios.post(`${API}/notes`, noteData, {
-//         headers: {
-//           'Authorization': `Bearer ${token}`,
-//         },
-//       });
-//       if (response.status === 201) {
-//         // Note created successfully
-//         // You can update the UI or perform any other actions as needed
-//       } else {
-//         setError('Failed to create note.');
-//       }
-//     } catch (error) {
-//       console.error('Error creating note:', error);
-//       setError('Failed to create note.');
-//     }
-//   };
 
   return (
     <UserContext.Provider value={{ userInfo, signup, login, logout, updateUser, loading, error }}>

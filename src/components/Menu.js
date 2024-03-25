@@ -3,40 +3,37 @@ import { useState } from 'react';
 import { FaBars } from "react-icons/fa";
 
 export const Menu = ({ menu, setMenu }) => {
-  const [activeLink, setActiveLink] = useState('/');
+  const [activeLink, setActiveLink] = useState('/dashboard');
 
   const handleLinkClick = (path, event) => {
     setActiveLink(path);
-    // prevent menu from toogling
+    // prevent menu from toggling
     event.stopPropagation(); // Stop the event from bubbling up to the parent article
   };
 
+  // Define an array of menu items
+  const menuItems = [
+    { path: '/pomodoro', name: 'Focus Mode' },
+    { path: '/dashboard', name: 'Dashboard' },
+    { path: '/tasks', name: 'Tasks' },
+    { path: '/notes', name: 'Notes' },
+    { path: '/profile', name: 'Profile' },
+    { path: '/settings', name: 'Settings' }
+  ];
+
   return (
-    <div className='bg-slate-800 text-white h-[4em] w-full'>
+    <div className='bg-[#ececec] text-[#121212] dark:bg-[#121212] dark:text-[#ffffff] h-full w-full'>
       <article onClick={() => setMenu(!menu)} className="cursor-pointer">
-        <FaBars size={22} style={{ position: 'absolute', top: '1.5em', left: '1em' }} />
+        {/* <FaBars size={22} style={{ position: 'absolute', top: '1.5em', left: '1em', background: '#181919' }} /> */}
         {menu && (
-          <ul className='flex flex-col items-center gap-y-6 pt-[4em] w-[90%]'>
-            <li className='bg-[#e4ce47] rounded-md hover:opacity-80 px-4 py-[1px] w-full'>
-              <button>
-                <Link to={`/newnote`}>New</Link>
-              </button>
-            </li>
-            <li className={`rounded-md hover:opacity-80 px-4 py-[1px] ${activeLink === '/' ? 'bg-slate-700' : ''}`}>
-              <button onClick={(e) => handleLinkClick('/', e)}>
-                <Link to='/notes'>Notes</Link>
-              </button>
-            </li>
-            <li className={`rounded-md hover:opacity-80 px-4 py-[1px] ${activeLink === '/tasks' ? 'bg-slate-700' : ''}`}>
-              <button onClick={(e) => handleLinkClick('/tasks', e)}>
-                <Link to='/tasks'>Tasks</Link>
-              </button>
-            </li>
-            <li className={`rounded-md hover:opacity-80 px-4 py-[1px] ${activeLink === '/favorites' ? 'bg-slate-700' : ''}`}>
-              <button onClick={(e) => handleLinkClick('/favorites', e)}>
-                <Link to='/favorites'>Favorites</Link>
-              </button>
-            </li>
+          <ul className='flex flex-col pt-[4em] w-[90%] mx-2 text-xl'>
+            {menuItems.map((item, index) => (
+              <li key={index} className={`rounded-md hover:opacity-80 w-full px-4 py-[5px] mb-2 ${activeLink === item.path ? 'h-full w-full bg-[#BC13FE] rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-20 shadow-sm' : ''}`} style={{ backgroundColor: item.path === '/pomodoro' ? '#BC13FE' : ''}}>
+                <button onClick={(e) => handleLinkClick(item.path, e)}>
+                  <Link to={item.path}>{item.name}</Link>
+                </button>
+              </li>
+            ))}
           </ul>
         )}
       </article>
