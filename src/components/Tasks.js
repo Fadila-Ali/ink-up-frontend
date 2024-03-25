@@ -1,81 +1,96 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import moment from 'moment';
 import { UserContext } from '../contexts/userContext';
-import { Note } from './Note';
 import { AiOutlinePlusCircle } from "react-icons/ai";
+import { Task } from "./Task";
 import { Search } from './Search';
 import { Filters } from './Filters';
+import { NewTask } from './NewTask';
 const API = process.env.REACT_APP_API_URL;
 
-export const Notes = () => {
-    const { userInfo } = useContext(UserContext); // Access user object from context
-    const [notes, setNotes] = useState([]); // notes array || may be filtered
-    const [originalNotes, setOriginalNotes] = useState([]); // get original notes || unfiltered
+export const Tasks = () => {
+    const { userInfo, error } = useContext(UserContext); // Access user object from context
+    const [tasks, setTasks] = useState([]); // tasks array || may be filtered
+    const [originalTasks, setOriginalTasks] = useState([]); // get original tasks || unfiltered
     const [currentPage, setCurrentPage] = useState(1); // current page default to 1
-    const numberOfNotesPerPage = 10; // number of notes to display per page
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(false);
+    const numberOfTasksPerPage = 10; // number of tasks to display per page
+
+    let navigate = useNavigate();
 
     useEffect(() => {
         if (!userInfo?.token) {
             // Handle authentication error, e.g., redirect to login page or show error message
             console.log(`User not Authenticated: ${userInfo}`);
             console.error("User not authenticated");
-            return;
+            setErrorMessage(true)
         }
         
         axios
-            .get(`${API}/notes`, {
+            .get(`${API}/tasks`, {
                 headers: {
                     Authorization: `Bearer ${userInfo.token}`
                 }
-            }) // Fetch notes associated with the logged-in user
+            }) // Fetch tasks associated with the logged-in user
             .then((res) => {
-                console.log(`Notes array: ${res.data}`);
-                // Sort the notes based on date_created in descending order
-                const sortedNotes = res.data.sort((a, b) => new Date(b.date_created) - new Date(a.date_created));
-                setNotes(sortedNotes);
-                setOriginalNotes(sortedNotes); // Save original unfiltered notes
+                console.log(`Tasks array: ${res.data}`);
+                // Sort the tasks based on date_created in descending order
+                const sortedTasks = res.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                setTasks(sortedTasks);
+                setOriginalTasks(sortedTasks); // Save original unfiltered tasks
             })
             .catch((c) => console.warn("catch", c));
     }, [userInfo]);
 
-    // Get number of pages based on number of user notes
-    const totalPages = Math.ceil(notes.length / numberOfNotesPerPage);
+
+    // Get number of pages based on number of user tasks
+    const totalPages = Math.ceil(tasks.length / numberOfTasksPerPage);
 
     // Pagination function
     const handlePageChange = (num) => {
         setCurrentPage(num);
     };
 
-    // Current notes to display
-    const indexOfLastNote = currentPage * numberOfNotesPerPage;
-    const indexOfFirstNote = indexOfLastNote - numberOfNotesPerPage;
-    const currentNotes = notes.slice(indexOfFirstNote, indexOfLastNote);
+    // Open modal function
+    const openModal = () => {
+        setIsModalOpen(true);
+    };
 
+    // Close modal function
+    const closeModal = () => {
+        setIsModalOpen(false);
+    };
 
-    // Group notes by their created date
-    const groupedNotes = currentNotes.reduce((acc, note) => {
-        let dateCreated = '';
+    // Current tasks to display
+    const indexOfLastNote = currentPage * numberOfTasksPerPage;
+    const indexOfFirstNote = indexOfLastNote - numberOfTasksPerPage;
+    const currentTasks = tasks.slice(indexOfFirstNote, indexOfLastNote);
+
+    // Group tasks by their created_at date
+    const groupedTasks = currentTasks.reduce((acc, task) => {
+        let createdAt = '';
         const today = moment().startOf('day');
         const yesterday = moment().subtract(1, 'days').startOf('day');
         const lastWeek = moment().subtract(1, 'weeks').startOf('day');
         const monthStart = moment().startOf('month');
         const yearStart = moment().startOf('year');
         
-        if (moment(note.date_created).isSame(today, 'day')) {
-            dateCreated = 'Today';
-        } else if (moment(note.date_created).isSame(yesterday, 'day')) {
-            dateCreated = 'Yesterday';
-        } else if (moment(note.date_created).isAfter(lastWeek)) {
-            dateCreated = 'Last Week';
-        } else if (moment(note.date_created).isSame(monthStart, 'month')) {
-            dateCreated = moment(note.date_created).format('MMMM YYYY');
-        } else if (moment(note.date_created).isSame(yearStart, 'year')) {
-            dateCreated = moment(note.date_created).format('YYYY');
+        if (moment(task.created_at).isSame(today, 'day')) {
+            createdAt = 'Today';
+        } else if (moment(task.created_at).isSame(yesterday, 'day')) {
+            createdAt = 'Yesterday';
+        } else if (moment(task.created_at).isAfter(lastWeek)) {
+            createdAt = 'Last Week';
+        } else if (moment(task.created_at).isSame(monthStart, 'month')) {
+            createdAt = moment(task.created_at).format('MMMM YYYY');
+        } else if (moment(task.created_at).isSame(yearStart, 'year')) {
+            createdAt = moment(task.created_at).format('YYYY');
         }
 
-        acc[dateCreated] = [...(acc[dateCreated] || []), note];
+        acc[createdAt] = [...(acc[createdAt] || []), task];
         return acc;
     }, {});
 
@@ -84,34 +99,46 @@ export const Notes = () => {
         <div className='p-4 flex justify-between gap-6 w-full'>
             <section className='w-2/3'>
                 {userInfo && userInfo.user && userInfo.user.username && (
-                    <h2 className='text-xl'>{userInfo.user.username.charAt(0).toUpperCase() + userInfo.user.username.substring(1)}, you have {originalNotes.length} notes!</h2>
+                    <h2 className='text-base'>{userInfo.user.firstname.charAt(0).toUpperCase() + userInfo.user.firstname.substring(1)}, you have {originalTasks.length} tasks!</h2>
                 )}
-                {/* Render user notes */}
-                <article className='p-4 h-[30rem] overflow-y-auto scrollbar-hide rounded border border-dotted border-gray-400 dark:border-gray-700'>
-                    <div className='bg-[#BC13FE] rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-15 border border-[#BC13FE] hover:bg-[#BC13FE] shadow-lg shadow-[#BC13FE]/25 p-4 w-full mb-6 h-10 flex justify-center items-center text-sm font-bold'>
-                        <Link to={`/newnote`}>
+                {/* Render user tasks */}
+                <article className='p-6 h-[30rem] overflow-y-auto scrollbar-hide rounded border border-dotted border-gray-400 dark:border-gray-700'>
+                    <div className='bg-[#BC13FE] rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-15 border-2 border-[#BC13FE] hover:bg-[#BC13FE] shadow-lg shadow-[#BC13FE]/25 p-4 w-full mb-6 h-10 flex justify-center items-center text-sm font-bold'>
+                        {/* Open modal when clicking on 'New task' */}
+                        <button onClick={openModal}>
                             <AiOutlinePlusCircle size={20} className='inline mx-1 mb-2 mt-1'/>
-                            New Note
-                        </Link>
+                            New task
+                        </button>
                     </div>
-                    {Object.entries(groupedNotes).map(([date_created, notes]) => (
-                        <div key={date_created} className="mb-6 mx-2">
-                            <h3 className="text-xs italic">{date_created}</h3>
+                    {isModalOpen && <NewTask closeModal={closeModal} setTasks={setTasks} setOriginalTasks={setOriginalTasks} />}
+                    {Object.entries(groupedTasks).map(([createdAt, tasks]) => (
+                        <div key={createdAt} className="mb-6 mx-2">
+                            <h3 className="text-xs italic">{createdAt}</h3>
                             <div className="border-b border-gray-400 dark:border-gray-700 my-2"></div>
-                            {notes.map((note) => (
-                                <Note key={note.id} note={note} />
+                            {tasks.map((task) => (
+                                <Task key={task.id} task={task} />
                             ))}
                         </div>
                     ))}
                 </article>
+                {/* Error when user is not authenticated */}
+                {errorMessage && (
+                    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
+                        <div className="bg-white p-8 rounded-lg shadow-lg">
+                            <h2 className="text-xl font-bold mb-4 text-gray-900">{error}</h2>
+                            <p className="text-gray-700 mb-4">Please log in again to continue.</p>
+                            <Link to={`/login`} className="bg-[#BC13FE] border border-[#BC13FE] hover:bg-[#7301EC] px-4 py-1 rounded">Log In</Link>
+                        </div>
+                    </div>
+                )}
                 {/* Pagination section */}
                 <section className='flex flex-col justify-center items-center gap-2'>
                     <div>
-                        {notes.length === 0 ? (
+                        {tasks.length === 0 ? (
                             <p>Showing 0 results</p>
                         ) : (
-                            <p className="text-sm text-gray-700 pt-2">
-                                Showing ({indexOfFirstNote + 1} to {Math.min(indexOfLastNote, notes.length)}) of {notes.length} results
+                            <p className="text-sm text-gray-500 pt-2">
+                                Showing ({indexOfFirstNote + 1} to {Math.min(indexOfLastNote, tasks.length)}) of {tasks.length} results
                             </p>
                         )}
                     </div>
@@ -148,7 +175,7 @@ export const Notes = () => {
                                             key={index + 1}
                                             onClick={() => handlePageChange(index + 1)}
                                             className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                                                currentPage === index + 1 ? "bg-[#BC13FE] text-white" : "text-gray-900 dark:text-gray-100"
+                                                currentPage === index + 1 ? "bg-[#BC13FE] text-white" : "text-gray-700 dark:text-gray-100"
                                             } ring-1 ring-inset ring-gray-300 hover:bg-[#7301EC] focus:z-20 focus:outline-offset-0`}
                                         >
                                             {index + 1}
@@ -170,7 +197,7 @@ export const Notes = () => {
                             <button
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}
-                                className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-[#7301EC] focus:z-20 focus:outline-offset-0"
+                                className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-100 ring-1 ring-inset ring-gray-300 hover:bg-[#7301EC] focus:z-20 focus:outline-offset-0"
                             >
                                 <span className="sr-only">Next</span>
                                 <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -185,11 +212,11 @@ export const Notes = () => {
                     </div>
                 </section>
             </section>
-            <section className='border border-dotted border-gray-400 dark:border-gray-700 w-1/3 p-4 mt-7 rounded-md h-[30rem] overflow-y-auto scrollbar-hide'>
+            <section className='border border-dotted border-gray-400 dark:border-gray-700 w-1/3 p-4 mt-6 rounded-md h-[30rem] overflow-y-auto scrollbar-hide'>
                 {/* Searching functionality here */}
-                <Search currentNotes={currentNotes} />
-                {/* filter and edit notes here */}
-                <Filters currentNotes={currentNotes} setNotes={setNotes} originalNotes={originalNotes} />
+                {/* <Search currentTasks={currentTasks} /> */}
+                {/* filter and edit tasks here */}
+                {/* <Filters currentTasks={currentTasks} setTasks={setTasks} originalTasks={originalTasks} /> */}
             </section>
         </div>
     );

@@ -33,7 +33,7 @@ export const SignupForm = () => {
         try {
           await signup(formData);
           // Redirect to user notes
-          navigate("/profile")
+          navigate("/login")
         } catch (error) {
           console.error('Signup error:', error);
           // Handle signup error
@@ -45,7 +45,7 @@ export const SignupForm = () => {
     <div className="sm:w-full lg:w-2/5 m-auto p-1">
         <h2 className='text-2xl text-center py-4'>Register</h2>
         <form onSubmit={handleSubmit} className="bg-slate-100 shadow-md rounded px-10 pt-6 pb-8 mb-4">
-            <img src={formData.profile_img} className='object-cover w-[100px] h-[100px] shadow mb-2 m-auto rounded-full'/>
+            <img src={formData.profile_img} alt={formData.profile_img} className='object-cover w-[100px] h-[100px] shadow mb-2 m-auto rounded-full'/>
             <div className='flex w-full'>
                 <input
                     type="text"

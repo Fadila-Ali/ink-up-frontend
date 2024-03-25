@@ -3,29 +3,40 @@ import { UserContext } from '../contexts/userContext';
 import { HiOutlinePencil } from "react-icons/hi2";
 
 export const Profile = () => {
-    const { user, updateUser } = useContext(UserContext);
+    const { userInfo, updateUser } = useContext(UserContext);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         firstname: '',
         lastname: '',
         email: '',
         profile_img: '',
+        profile_img_file: null, // New state to store file object
         username: '',
         password_hash: ''
     });
+    const [profileImageKey, setProfileImageKey] = useState(0);
 
     useEffect(() => {
-        if (user) {
+        if (userInfo && userInfo.user) {
             setFormData({
-                firstname: user.firstname || '',
-                lastname: user.lastname || '',
-                email: user.email || '',
-                profile_img: user.profile_img || '',
-                username: user.username || '',
-                password_hash: user.password_hash || ''
+                firstname: userInfo.user.firstname || '',
+                lastname: userInfo.user.lastname || '',
+                email: userInfo.user.email || '',
+                profile_img: userInfo.user.profile_img || '',
+                username: userInfo.user.username || '',
+                password_hash: userInfo.user.password_hash || ''
             });
         }
-    }, [user]);
+    }, [userInfo]);
+
+
+    // this fixes the issue of profile image not showing or updating right away
+    // a key attribute is added to the image element, which forces React to re-render the image when the key changes
+    useEffect(() => {
+        // Update the key whenever the profile image changes
+        setProfileImageKey(prevKey => prevKey + 1);
+    }, [userInfo.user.profile_img]); // Listen for changes in the profile image URL
+
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,7 +48,12 @@ export const Profile = () => {
 
     const handleSave = async () => {
         try {
-            await updateUser(formData);
+            // Check if profile_img_file exists, if it does, use it for uploading
+            const updatedFormData = { ...formData };
+            if (formData.profile_img_file) {
+                updatedFormData.profile_img = URL.createObjectURL(formData.profile_img_file);
+            }
+            await updateUser(updatedFormData);
             setIsEditing(false);
         } catch (error) {
             console.error('Error updating profile:', error);
@@ -46,8 +62,14 @@ export const Profile = () => {
     };
 
     const handleFileChange = (e) => {
-        const file = URL.createObjectURL(e.target.files[0]);
-        setFormData({ ...formData, profile_img: file });
+        // Check if a file is uploaded
+        if (e.target.files && e.target.files[0]) {
+            setFormData({
+                ...formData,
+                profile_img_file: e.target.files[0], // Store file object
+                profile_img: URL.createObjectURL(e.target.files[0]) // Display image preview
+            });
+        }
     };
 
     return (
@@ -55,8 +77,8 @@ export const Profile = () => {
             {isEditing ? (
                 <form className='w-full'>
                     <h2 className='text-2xl py-1'>Editing Profile Page</h2>
-                    <div className='flex gap-4 bg-slate-100 shadow-md p-4 my-2 rounded'>
-                        <img src={formData.profile_img} alt={`${formData.firstname}' profile image`} className='object-cover w-[150px] h-[150px] shadow rounded-full'/>
+                    <div className='flex gap-4 bg-[#ececec] shadow-md p-4 my-2 rounded'>
+                        <img key={profileImageKey} src={formData.profile_img} alt={formData.firstname} className='object-cover w-[150px] h-[150px] shadow rounded-full'/>
                         <div>
                             <div className='flex w-full'>
                                 <input
@@ -98,9 +120,17 @@ export const Profile = () => {
                             <div className='flex gap-4'>
                                 <input
                                     type="file"
-                                    name="profile_img"
+                                    name="profile_img_file"
                                     accept="image/*"
                                     onChange={handleFileChange}
+                                    className='shadow bg-transparent appearance-none border rounded py-2 px-3 mt-4 w-1/2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
+                                />
+                                <input
+                                    type="text"
+                                    name="profile_img"
+                                    value={formData.profile_img}
+                                    onChange={handleChange}
+                                    placeholder="Profile Image URL"
                                     className='shadow bg-transparent appearance-none border rounded py-2 px-3 mt-4 w-1/2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
                                 />
                                 <input
@@ -120,17 +150,21 @@ export const Profile = () => {
                     </div>
                 </form>
             ) : (
-                <section className='w-full'>
-                    <h2 className='text-2xl py-1'>Profile Page</h2>
-                    <div className='flex gap-4 bg-slate-100 shadow-md p-4 my-2 rounded'>
-                        <img src={formData.profile_img} alt={`${formData.firstname}' profile image`} className='object-cover w-[200px] h-[200px] rounded'></img>
-                        <div>
-                            <h3 className='text-3xl'><span>{formData.firstname}</span> <span>{formData.lastname}</span></h3>
-                            <h4 className='text-sm font-bold'>@{formData.username}</h4>
-                            <h3>Email: <span>{formData.email}</span></h3>
-                        </div>
+                <section className='w-full min-h-[30rem] border border-dotted border-slate-400 rounded p-4'>
+                    <h2 className='text-lg py-1'>Profile Page</h2>
+                    <div className='flex gap-4 bg-[#ececec] shadow-md p-4 my-2 rounded'>
+                        {userInfo && userInfo.user && (
+                            <>
+                                <img key={profileImageKey} src={userInfo.user.profile_img} alt={userInfo.user.firstname} className='object-cover w-[200px] h-[200px] rounded'></img>
+                                <div>
+                                    <h3 className='text-3xl'><span>{userInfo.user.firstname}</span> <span>{userInfo.user.lastname}</span></h3>
+                                    <h4 className='text-sm font-bold'>@{userInfo.user.username}</h4>
+                                    <h3>Email: <span>{userInfo.user.email}</span></h3>
+                                </div>
+                            </>
+                        )}
                     </div>
-                    <div className='flex justify-center items-center gap-1 bg-green-200 rounded'>
+                    <div className='flex justify-center items-center gap-1 bg-[#04d9ff] rounded'>
                         <button onClick={handleEdit}>edit profile</button><span><HiOutlinePencil /></span>
                     </div>
             </section>
